@@ -2,6 +2,10 @@
 
 set -e -x
 
+echo "Cleaning out and releases..."
+rm -rf out
+rm -rf release
+
 echo "Creating release dir..."
 mkdir -p release
 
@@ -34,9 +38,9 @@ createRelease() {
 
 	if [ "$arm" ]
 	then
-		GOOS=$os GOARCH=$arch GOARM=$arm go build -o "out/$binname" -v github.com/jacted/godeploy
+		GOOS=$os GOARCH=$arch GOARM=$arm go build -o "out/$binname"
 	else
-		GOOS=$os GOARCH=$arch go build -o "out/$binname" -v github.com/jacted/godeploy
+		GOOS=$os GOARCH=$arch go build -o "out/$binname"
 	fi
 
 	cd out
