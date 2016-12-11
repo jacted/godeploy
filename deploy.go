@@ -16,7 +16,6 @@ func walkFiles(srcPath string, info os.FileInfo, err error) error {
 			return nil
 		}
 	}
-
 	return nil
 }
 
@@ -31,7 +30,6 @@ func uploadFile(srcPath string, destPath string) error {
 		return err
 	}
 	defer f.Close()
-
 	if _, err = io.Copy(f, b); err != nil {
 		return err
 	}

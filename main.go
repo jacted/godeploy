@@ -3,17 +3,15 @@ package main
 import (
 	"crypto/rand"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"os"
-
-	"github.com/pkg/sftp"
-
+	"path"
 	"path/filepath"
-
 	"time"
 
-	"path"
+	"gopkg.in/urfave/cli.v1"
+
+	"github.com/pkg/sftp"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -47,85 +45,119 @@ var settings *Settings
 var tmpPath string
 
 func main() {
-	// Parse CLI Flags
-	configPath := flag.String("config", "godeploy.json", "Config to parse.")
-	flag.Parse()
-
 	var err error
 
-	// Get settings
-	settings, err = getConfig(*configPath)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(0)
+	app := cli.NewApp()
+	app.Name = "godeploy"
+	app.Usage = "Deploy files to server using SSH and SFTP"
+	app.Version = "0.0.1"
+
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "config, c",
+			Value: "godeploy.json",
+			Usage: "json file with settings",
+		},
 	}
 
-	// Get SSH session
-	conn, err = connectToSSH()
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(0)
-	}
-	defer conn.Close()
+	app.Action = func(c *cli.Context) error {
+		// Flags
+		configPath := c.GlobalString("config")
 
-	// Create sftp
-	sftpClient, err = sftp.NewClient(conn)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(0)
-	}
-	defer sftpClient.Close()
-
-	// Pre deployment
-	if settings.PreDeploy != "" {
-		err := uploadFile(settings.PreDeploy, settings.PreDeploy)
+		// Get settings
+		settings, err = getConfig(configPath)
 		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(0)
+			return err
 		}
-		runCommand("bash " + settings.PreDeploy)
-	}
 
-	// Random tmp path
-	tmpPath = "/tmp/godeploy_" + randToken()
-
-	// Delete tmpPath + create it
-	sftpClient.Mkdir(tmpPath)
-
-	// Walk local folder
-	err = filepath.Walk(settings.Files.Include, walkFiles)
-	if err != nil {
-		fmt.Println(err.Error())
-		os.Exit(0)
-	}
-
-	// Backup
-	if settings.Files.Backup != "" {
-		t := time.Now()
-		backupName := t.Format("godeploy_2006-01-02T150405")
-		backupPath := path.Join(settings.Files.Backup, backupName)
-		runCommand("mv " + settings.Files.Dist + " " + backupPath)
-	} else {
-		runCommand("rm -rf " + settings.Files.Dist)
-	}
-
-	// Move tmpPath to Dist
-	runCommand("mv " + path.Join(tmpPath, settings.Files.Include) + " " + settings.Files.Dist)
-
-	// Clean up tmpPath
-	runCommand("rm -rf " + tmpPath)
-
-	// Post deployment
-	if settings.PostDeploy != "" {
-		err := uploadFile(settings.PostDeploy, settings.PostDeploy)
+		// Get SSH session
+		conn, err = connectToSSH()
 		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(0)
+			return err
 		}
-		runCommand("bash " + settings.PostDeploy)
+		defer conn.Close()
+
+		// Create sftp
+		sftpClient, err = sftp.NewClient(conn)
+		if err != nil {
+			return err
+		}
+		defer sftpClient.Close()
+
+		// Pre deployment
+		if settings.PreDeploy != "" {
+			err = uploadFile(settings.PreDeploy, settings.PreDeploy)
+			if err != nil {
+				return err
+			}
+			err = runCommand("bash " + settings.PreDeploy)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Random tmp path
+		tmpPath = "/tmp/godeploy_" + randToken()
+
+		// Delete tmpPath + create it
+		err = sftpClient.Mkdir(tmpPath)
+		if err != nil {
+			return err
+		}
+
+		// Walk local folder
+		err = filepath.Walk(settings.Files.Include, walkFiles)
+		if err != nil {
+			return err
+		}
+
+		// Backup
+		if settings.Files.Backup != "" {
+			t := time.Now()
+			backupName := t.Format("godeploy_2006-01-02T150405")
+			backupPath := path.Join(settings.Files.Backup, backupName)
+			err = runCommand("mv " + settings.Files.Dist + " " + backupPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = runCommand("rm -rf " + settings.Files.Dist)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Move tmpPath to Dist
+		err = runCommand("mv " + path.Join(tmpPath, settings.Files.Include) + " " + settings.Files.Dist)
+		if err != nil {
+			return err
+		}
+
+		// Clean up tmpPath
+		err = runCommand("rm -rf " + tmpPath)
+		if err != nil {
+			return err
+		}
+
+		// Post deployment
+		if settings.PostDeploy != "" {
+			err := uploadFile(settings.PostDeploy, settings.PostDeploy)
+			if err != nil {
+				return err
+			}
+			err = runCommand("bash " + settings.PostDeploy)
+			if err != nil {
+				return err
+			}
+		}
+
+		fmt.Println("Done deploying!")
+
+		// Return nil
+		return nil
 	}
 
-	fmt.Println("Done deploying!")
+	app.Run(os.Args)
 }
 
 // Get and parse config

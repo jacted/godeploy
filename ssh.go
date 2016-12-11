@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"golang.org/x/crypto/ssh"
 )
@@ -23,18 +22,24 @@ func connectToSSH() (con *ssh.Client, err error) {
 }
 
 // Creates and returns a session
-func createSession(conn *ssh.Client) (session *ssh.Session) {
-	session, err := conn.NewSession()
+func createSession(conn *ssh.Client) (session *ssh.Session, err error) {
+	newSession, err := conn.NewSession()
 	if err != nil {
-		fmt.Println("Error establishing new session")
-		os.Exit(0)
+		return nil, err
 	}
-	return session
+	return newSession, nil
 }
 
 // Creates a session and runs a command
-func runCommand(cmd string) {
-	session := createSession(conn)
+func runCommand(cmd string) error {
+	session, err := createSession(conn)
+	if err != nil {
+		return err
+	}
 	defer session.Close()
-	session.Run(cmd)
+	err = session.Run(cmd)
+	if err != nil {
+		return err
+	}
+	return nil
 }
