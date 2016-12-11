@@ -27,6 +27,10 @@ godeploy.json example
 }
 ```
 
+Possible commands:
+
+`godeploy help`
+
 CLI flags:
 
-`-config godeploy.json`
+`--config godeploy.json`
