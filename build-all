@@ -1,0 +1,69 @@
+#!/bin/bash
+
+set -e -x
+
+echo "Creating release dir..."
+mkdir -p release
+
+createRelease() {
+	os=$1
+	arch=$2
+	arm=$3
+
+	if [ "$os" = darwin ]
+	then
+		osname='mac'
+	else
+		osname=$os
+	fi
+	if [ "$arch" = amd64 ]
+	then
+		osarch=64bit
+	else
+		osarch=32bit
+	fi
+
+	binname=godeploy
+	if [ "$osname" = windows ]
+	then
+		binname="$binname.exe"
+	fi
+
+	relname="../release/godeploy-$osname-$osarch"
+	echo "Creating $os/$arch binary..."
+
+	if [ "$arm" ]
+	then
+		GOOS=$os GOARCH=$arch GOARM=$arm go build -o "out/$binname" -v github.com/jacted/godeploy
+	else
+		GOOS=$os GOARCH=$arch go build -o "out/$binname" -v github.com/jacted/godeploy
+	fi
+
+	cd out
+
+	if [ "$osname" = windows ]
+	then
+		zip "$relname.zip" "$binname"
+	else
+		tar cvzf "$relname.tgz" "$binname"
+	fi
+	cd ..
+}
+
+# Mac Releases
+createRelease darwin 386
+createRelease darwin amd64
+
+# Linux Releases
+createRelease linux 386
+createRelease linux amd64
+
+# ARM Releases
+createRelease linux arm 5
+createRelease linux arm 6
+createRelease linux arm 7
+createRelease linux arm64
+
+# Windows Releases
+createRelease windows 386
+createRelease windows amd64
