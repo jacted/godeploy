@@ -1,5 +1,8 @@
 # Godeploy
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/jacted/godeploy)](https://goreportcard.com/report/github.com/jacted/godeploy)
+[![MIT licensed](https://img.shields.io/github/license/jacted/godeploy.svg?maxAge=2592000)](https://github.com/jacted/godeploy/blob/master/LICENSE)
+
 A CLI tool for deploying files directly from your computer to a server using SSH and SFTP.
 
 ## Installation
@@ -36,8 +39,18 @@ godeploy.json example:
 
 ## Commands:
 
-`godeploy help`
+|`godeploy <command>`|Description|
+|------------------|-----------|
+|`help`|Shows help description.|
 
 ## CLI Flags
 
 `--config PATH_JSON_FILE`
+
+## Questions and issues
+
+Use the Github issue tracker for any questions, issues or feature suggestions.
+
+## License
+
+MIT licensed.
