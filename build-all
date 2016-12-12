@@ -2,6 +2,8 @@
 
 set -e -x
 
+args=("$@")
+
 echo "Cleaning out and releases..."
 rm -rf out
 rm -rf release
@@ -33,7 +35,7 @@ createRelease() {
 		binname="$binname.exe"
 	fi
 
-	relname="../release/godeploy-$osname-$osarch"
+	relname="../release/${args[0]}_godeploy-$osname-$osarch"
 	echo "Creating $os/$arch binary..."
 
 	if [ "$arm" ]
