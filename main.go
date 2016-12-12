@@ -50,7 +50,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "godeploy"
 	app.Usage = "Deploy files to server using SSH and SFTP"
-	app.Version = "0.0.1"
+	app.Version = "0.0.2"
 
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
