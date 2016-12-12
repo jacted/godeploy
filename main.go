@@ -60,101 +60,99 @@ func main() {
 		},
 	}
 
-	app.Action = func(c *cli.Context) error {
-		// Flags
-		configPath := c.GlobalString("config")
+	app.Commands = []cli.Command{
+		{
+			Name:  "ssh",
+			Usage: "deploys using SSH and SFTP",
+			Action: func(c *cli.Context) error {
+				// Flags
+				configPath := c.GlobalString("config")
 
-		// Get settings
-		settings, err = getConfig(configPath)
-		if err != nil {
-			return err
-		}
+				// Get settings
+				settings, err = getConfig(configPath)
+				if err != nil {
+					return err
+				}
 
-		// Get SSH session
-		conn, err = connectToSSH()
-		if err != nil {
-			return err
-		}
-		defer conn.Close()
+				// Get SSH session
+				conn, err = connectToSSH()
+				if err != nil {
+					return err
+				}
+				defer conn.Close()
 
-		// Create sftp
-		sftpClient, err = sftp.NewClient(conn)
-		if err != nil {
-			return err
-		}
-		defer sftpClient.Close()
+				// Create sftp
+				sftpClient, err = sftp.NewClient(conn)
+				if err != nil {
+					return err
+				}
+				defer sftpClient.Close()
 
-		// Pre deployment
-		if settings.PreDeploy != "" {
-			err = uploadFile(settings.PreDeploy, settings.PreDeploy)
-			if err != nil {
-				return err
-			}
-			err = runCommand("bash " + settings.PreDeploy)
-			if err != nil {
-				return err
-			}
-		}
+				// Pre deployment
+				if settings.PreDeploy != "" {
+					err = uploadAndRunScript(settings.PreDeploy)
+					if err != nil {
+						return err
+					}
+				}
 
-		// Random tmp path
-		tmpPath = "/tmp/godeploy_" + randToken()
+				// Random tmp path
+				tmpPath = "/tmp/godeploy_" + randToken()
 
-		// Delete tmpPath + create it
-		err = sftpClient.Mkdir(tmpPath)
-		if err != nil {
-			return err
-		}
+				// Delete tmpPath + create it
+				err = sftpClient.Mkdir(tmpPath)
+				if err != nil {
+					return err
+				}
 
-		// Walk local folder
-		err = filepath.Walk(settings.Files.Include, walkFiles)
-		if err != nil {
-			return err
-		}
+				// Walk local folder
+				err = filepath.Walk(settings.Files.Include, walkFiles)
+				if err != nil {
+					return err
+				}
 
-		// Backup
-		if settings.Files.Backup != "" {
-			t := time.Now()
-			backupName := t.Format("godeploy_2006-01-02T150405")
-			backupPath := path.Join(settings.Files.Backup, backupName)
-			err = runCommand("mv " + settings.Files.Dist + " " + backupPath)
-			if err != nil {
-				return err
-			}
-		} else {
-			err = runCommand("rm -rf " + settings.Files.Dist)
-			if err != nil {
-				return err
-			}
-		}
+				// Backup
+				if settings.Files.Backup != "" {
+					t := time.Now()
+					backupName := t.Format("godeploy_2006-01-02T150405")
+					backupPath := path.Join(settings.Files.Backup, backupName)
+					err = runCommand("mv " + settings.Files.Dist + " " + backupPath)
+					if err != nil {
+						return err
+					}
+				} else {
+					err = runCommand("rm -rf " + settings.Files.Dist)
+					if err != nil {
+						return err
+					}
+				}
 
-		// Move tmpPath to Dist
-		err = runCommand("mv " + path.Join(tmpPath, settings.Files.Include) + " " + settings.Files.Dist)
-		if err != nil {
-			return err
-		}
+				// Move tmpPath to Dist
+				err = runCommand("mv " + path.Join(tmpPath, settings.Files.Include) + " " + settings.Files.Dist)
+				if err != nil {
+					return err
+				}
 
-		// Clean up tmpPath
-		err = runCommand("rm -rf " + tmpPath)
-		if err != nil {
-			return err
-		}
+				// Clean up tmpPath
+				err = runCommand("rm -rf " + tmpPath)
+				if err != nil {
+					return err
+				}
 
-		// Post deployment
-		if settings.PostDeploy != "" {
-			err := uploadFile(settings.PostDeploy, settings.PostDeploy)
-			if err != nil {
-				return err
-			}
-			err = runCommand("bash " + settings.PostDeploy)
-			if err != nil {
-				return err
-			}
-		}
+				// Post deployment
+				if settings.PostDeploy != "" {
+					err := uploadAndRunScript(settings.PostDeploy)
+					if err != nil {
+						return err
+					}
+				}
 
-		fmt.Println("Done deploying!")
+				fmt.Println("Done deploying!")
 
-		// Return nil
-		return nil
+				// Return nil
+				return nil
+			},
+		},
 	}
 
 	app.Run(os.Args)

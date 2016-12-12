@@ -19,6 +19,18 @@ func walkFiles(srcPath string, info os.FileInfo, err error) error {
 	return nil
 }
 
+func uploadAndRunScript(srcPath string) error {
+	err := uploadFile(srcPath, srcPath)
+	if err != nil {
+		return err
+	}
+	err = runCommand("bash " + srcPath)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func uploadFile(srcPath string, destPath string) error {
 	b, err := os.Open(srcPath)
 	if err != nil {
