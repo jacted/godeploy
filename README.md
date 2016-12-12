@@ -42,6 +42,7 @@ godeploy.json example:
 |`godeploy <command>`|Description|
 |------------------|-----------|
 |`help`|Shows help description.|
+|`ssh`|Deploys using SSH and SFTP.|
 
 ## CLI Flags
 
